@@ -1,5 +1,7 @@
 #pragma once
 #include "space_l2.h"
+#include "space_l1.h"
+#include "space_lp.h"
 #include "space_ip.h"
 #include <assert.h>
 #include <unordered_map>
