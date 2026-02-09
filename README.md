@@ -75,4 +75,4 @@ This script executes the query on the constructed index and outputs the candidat
 }
 ```
 * NMSLIB
-[a link](https://github.com/nmslib/nmslib)
+[NMSLIB Github](https://github.com/nmslib/nmslib)
