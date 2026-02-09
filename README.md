@@ -1,51 +1,5 @@
-# Hnswlib - fast approximate nearest neighbor search
-Header-only C++ HNSW implementation with python bindings, insertions and updates.
-
-**NEWS:**
-
-**version 0.8.0** 
-
-* Multi-vector document search and epsilon search (for now, only in C++)
-* By default, there is no statistic aggregation, which speeds up the multi-threaded search (it does not seem like people are using it anyway: [Issue #495](https://github.com/nmslib/hnswlib/issues/495)). 
-* Various bugfixes and improvements
-* `get_items` now have `return_type` parameter, which can be either 'numpy' or 'list'
-
-Full list of changes: https://github.com/nmslib/hnswlib/pull/523
-
-**version 0.7.0** 
-
-* Added support to filtering (#402, #430) by [@kishorenc](https://github.com/kishorenc)
-* Added python interface for filtering (though note its performance is limited by GIL) (#417) by [@gtsoukas](https://github.com/gtsoukas)
-* Added support for replacing the elements that were marked as delete with newly inserted elements (to control the size of the index, #418) by [@dyashuni](https://github.com/dyashuni)
-* Fixed data races/deadlocks in updates/insertion, added stress test for multithreaded operation (#418) by [@dyashuni](https://github.com/dyashuni)
-* Documentation, tests, exception handling, refactoring (#375, #379, #380, #395, #396, #401, #406, #404, #409, #410, #416, #415, #431, #432, #433) by [@jlmelville](https://github.com/jlmelville), [@dyashuni](https://github.com/dyashuni), [@kishorenc](https://github.com/kishorenc), [@korzhenevski](https://github.com/korzhenevski), [@yoshoku](https://github.com/yoshoku), [@jianshu93](https://github.com/jianshu93), [@PLNech](https://github.com/PLNech)
-* global linkages (#383) by [@MasterAler](https://github.com/MasterAler), USE_SSE usage in MSVC (#408) by [@alxvth](https://github.com/alxvth)
-
-
-### Highlights:
-1) Lightweight, header-only, no dependencies other than C++ 11
-2) Interfaces for C++, Python, external support for Java and R (https://github.com/jlmelville/rcpphnsw).
-3) Has full support for incremental index construction and updating the elements (thanks to the contribution by Apoorv Sharma). Has support for element deletions 
-(by marking them in index, later can be replaced with other elements). Python index is picklable.
-4) Can work with custom user defined distances (C++).
-5) Significantly less memory footprint and faster build time compared to current nmslib's implementation.
-
-Description of the algorithm parameters can be found in [ALGO_PARAMS.md](ALGO_PARAMS.md).
-
-
-### Python bindings
-
-#### Supported distances:
-
-| Distance         | parameter       | Equation                |
-| -------------    |:---------------:| -----------------------:|
-|Squared L2        |'l2'             | d = sum((Ai-Bi)^2)      |
-|Inner product     |'ip'             | d = 1.0 - sum(Ai\*Bi)   |
-|Cosine similarity |'cosine'         | d = 1.0 - sum(Ai\*Bi) / sqrt(sum(Ai\*Ai) * sum(Bi\*Bi))|
-
-Note that inner product is not an actual metric. An element can be closer to some other element than to itself. That allows some speedup if you remove all elements that are not the closest to themselves from the index.
-
-For other spaces use the nmslib library https://github.com/nmslib/nmslib. 
+# U-HNSW - fast approximate nearest neighbor search for Universal ANNS-L_p
+C++ U-HNSW implementation.
 
 #### API description
 * `hnswlib.Index(space, dim)` creates a non-initialized index an HNSW in space `space` with integer dimension `dim`.
@@ -351,3 +305,4 @@ HNSW paper:
 ```
 
 The update algorithm supported in this repository is to be published in "Dynamic Updates For HNSW, Hierarchical Navigable Small World Graphs" US Patent 15/929,802 by Apoorv Sharma, Abhishek Tayal and Yury Malkov.
+
