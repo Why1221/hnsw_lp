@@ -21,9 +21,8 @@ make all
 ```
 This will generate three executables in the root directory:
 * `hnsw_index`: For building the graph index ($G_1$ or $G_2$).
-* `hnsw_query`: For running search queries (Candidate Generation).dist_comp_time: For benchmarking distance computation costs.To clean up compiled files:
-This will generate three executables in the root directory:hnsw_index: For building the graph index ($G_1$ or $G_2$).
-* `hnsw_query`: For running search queries (Candidate Generation).dist_comp_time: For benchmarking distance computation costs.
+* `hnsw_query`: For running search queries (Candidate Generation).
+* `dist_comp_time`: For benchmarking distance computation costs.
 
 To clean up compiled files:
 ```bash
@@ -61,7 +60,7 @@ This script executes the query on the constructed index and outputs the candidat
 
 ## References
 
-HNSW paper:
+* HNSW paper:
 
 ```Latex
 @article{malkov2018efficient,
@@ -75,3 +74,5 @@ HNSW paper:
   publisher={IEEE}
 }
 ```
+* NMSLIB
+[a link](https://github.com/nmslib/nmslib)
