@@ -3,7 +3,6 @@ import pathlib
 import os, sys
 import json
 import numpy as np
-from oniakIO import odats
 
 # Indexing for HNSW
 datasets = ["glove"] #,gist","glove","deep","sift","sun","mnist"
@@ -27,6 +26,21 @@ default_config = {
     "rf": ""   # will be updated per dataset
 }
 
+def read_fvecs_shape(path: str) -> tuple[int, int]:
+    file_size = os.path.getsize(path)
+    with open(path, "rb") as fin:
+        dim_bytes = fin.read(4)
+        if len(dim_bytes) != 4:
+            raise RuntimeError(f"Failed to read dimension from fvecs file: {path}")
+        dim = int.from_bytes(dim_bytes, byteorder="little", signed=False)
+    if dim <= 0:
+        raise RuntimeError(f"Invalid dimension in fvecs file: {path}")
+    record_size = 4 + dim * 4
+    if file_size % record_size != 0:
+        raise RuntimeError(f"Corrupted fvecs file (record mismatch): {path}")
+    num = file_size // record_size
+    return int(num), int(dim)
+
 for i in range(len(datasets)):
     for j in range(len(p_lst)):
         dataset = datasets[i]
@@ -45,9 +59,9 @@ for i in range(len(datasets)):
                 json.dump(default_config, fout, indent=4)
         
         # Update configuration with dataset-specific values
-        data = odats.read_file(exp_path_org + "/{}/{}-train.fvecs".format(dataset,dataset))
-        conf["n"] = data.shape[0]
-        conf["d"] = data.shape[1]
+        n,d =read_fvecs_shape(exp_path_org + "/{}/{}-train.fvecs".format(dataset,dataset))
+        conf["n"] = n
+        conf["d"] = d
         conf["ds"] = exp_path_org + "/{}/{}-train.fvecs".format(dataset,dataset)
         conf["if"] = exp_path_org + "/{}/{}_{}.index".format(dataset, dataset, p)
         conf["p"] = p

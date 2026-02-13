@@ -48,6 +48,7 @@ To build the base HNSW indices ($G_1$ optimized for $L_1$, or $G_2$ optimized fo
 python scripts/run_index.py
 ```
 This script will automatically generate the necessary JSON configuration files and invoke the `hnsw_index` executable to build and save the index to disk.
+
 ### 3. Query Processing
 To perform the nearest neighbor search (currently covering the Candidate Generation phase):
 * 1.Edit `scripts/run_query_k.py` to set your dataset paths, the query metric $p$, and search parameters (e.g., $K$, $efS$).
@@ -57,6 +58,11 @@ To perform the nearest neighbor search (currently covering the Candidate Generat
 python scripts/run_query_k.py
 ```
 This script executes the query on the constructed index and outputs the candidate results to disk (in `.ivecs` format).
+
+## Datasets
+
+Some of the datasets used in the paper can be found here:
+[Test Datasets in Zenodo](https://zenodo.org/records/18626438?token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjBiMjhmYTU0LWI2MzktNDJiOC04OThiLWIzNmNjN2ExYzcxYyIsImRhdGEiOnt9LCJyYW5kb20iOiI2ZmQxMmU4ZDYyMTBlNGI3OTM4NTM4NWU5OGVjMTIzOCJ9.4fEdjRrNccXuXL-tyB7kTnyRxDqr9TDsyhO-WouD4MMt8Oc2nhQrnDnk6FuQ15yGJBQgTi7pH3N5SQ6KCSZqzQ)
 
 ## References
 

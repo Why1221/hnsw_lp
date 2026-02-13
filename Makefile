@@ -32,18 +32,20 @@ HNSWLIB_SRC = hnswlib/hnswlib.h
 BUILD_SRC = hnsw_index.cc
 QUERY_SRC = hnsw_query.cc
 BENCHMARK_SRC = dist_comp.cc
+VERIFY_SRC = candidate_verify.cc
 
 # --- Executable Names ---
 
 BUILD_APP = hnsw_index
 QUERY_APP = hnsw_query
 BENCHMARK_APP = dist_comp_time
+VERIFY_APP = candidate_verify
 
 # --- Targets ---
 
 # The default target, executed when you just run `make`.
 # It depends on all application targets.
-all: $(BUILD_APP) $(QUERY_APP) $(BENCHMARK_APP)
+all: $(BUILD_APP) $(QUERY_APP) $(BENCHMARK_APP) $(VERIFY_APP)
 
 # Rule to build the index building application.
 # It depends on its source file and the HNSWlib source file.
@@ -62,11 +64,16 @@ $(BENCHMARK_APP): $(BENCHMARK_SRC) $(HNSWLIB_SRC)
 	$(CXX) $(CXXFLAGS) $(BENCHMARK_SRC) $(HNSWLIB_SRC) -o $(BENCHMARK_APP) $(LDFLAGS)
 	@echo "--- Built '$(BENCHMARK_APP)' successfully. Use 'make benchmark' to build. ---"
 
+# Rule to build the candidate verification application.
+$(VERIFY_APP): $(VERIFY_SRC) $(HNSWLIB_SRC)
+	$(CXX) $(CXXFLAGS) $(VERIFY_SRC) $(HNSWLIB_SRC) -o $(VERIFY_APP) $(LDFLAGS)
+	@echo "--- Built '$(VERIFY_APP)' successfully. ---"
+
 
 # The "clean" target to remove compiled files.
 clean:
 	@echo "Cleaning up compiled files..."
-	rm -f $(BUILD_APP) $(QUERY_APP) $(BENCHMARK_APP)
+	rm -f $(BUILD_APP) $(QUERY_APP) $(BENCHMARK_APP) $(VERIFY_APP)
 
 # Declare targets that are not actual files as "PHONY".
 # This prevents `make` from getting confused if a file named "all" or "clean" exists.
