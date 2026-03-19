@@ -52,8 +52,8 @@ lp_graph/
 ```
 
 For each dataset directory, the required files are:
-* `{dataset}-train.fvecs`
-* `{dataset}-test.fvecs`
+* `{dataset}-train.fvecs`: Dataset used to build the index
+* `{dataset}-test.fvecs`: Dataset used for query
 * `{dataset}_1.0.index` and/or `{dataset}_2.0.index`
 * `config/` for generated JSON configuration files
 
