@@ -10,8 +10,8 @@
 #include "hnswlib/hnswlib.h"
 #include "hnsw_global.h" // Assumes your read_config and hnsw_params are here
 
-#include <Exception.h>   // Assumes this is part of your utility library
-#include <StringUtils.hpp> // Assumes this is part of your utility library
+#include <Exception.h>  
+#include <StringUtils.hpp>
 
 using namespace StringUtils;
 using namespace std;

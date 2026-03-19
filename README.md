@@ -36,18 +36,41 @@ To reproduce the analysis of computational costs for different $L_p$ metrics (as
 
 This program measures and compares the execution time of $L_1$, $L_2$, and general $L_p$ distance computations using the implemented SIMD optimizations.
 
-### 2. Index Construction
+### 2. Expected Directory Layout
+By default, the Python scripts derive paths from the repository location and assume the following layout:
+
+```text
+lp_graph/
+├── Experiments/
+│   └── <dataset>/
+│       ├── <dataset>-train.fvecs
+│       ├── <dataset>-test.fvecs
+│       ├── <dataset>_1.0.index
+│       ├── <dataset>_2.0.index
+│       └── config/
+└── hnsw_lp/
+```
+
+For each dataset directory, the required files are:
+* `{dataset}-train.fvecs`
+* `{dataset}-test.fvecs`
+* `{dataset}_1.0.index` and/or `{dataset}_2.0.index`
+* `config/` for generated JSON configuration files
+
+The scripts assume `Experiments/` is a sibling directory of `hnsw_lp/`. If you use a different layout, edit the optional `exp_path_org` override at the top of the Python script and set it to your custom experiments root.
+
+### 3. Index Construction
 We provide Python wrapper scripts in the `scripts/` directory to handle configuration generation and index construction.
 
 To build the base HNSW indices ($G_1$ optimized for $L_1$, or $G_2$ optimized for $L_2$):
-* 1. Edit `scripts/run_index.py` to set dataset paths (`exp_path_org`) and index parameters (e.g., `M`, `efc`, `p`).
+* 1. Edit `scripts/run_index.py` to set the dataset list and index parameters (for example `M`, `efc`, and `p`).
 * 2. Run the script:
 ```bash
 python scripts/run_index.py
 ```
 This script will automatically generate the necessary JSON configuration files and invoke the `hnsw_index` executable to build and save the index to disk.
 
-### 3. Query Processing
+### 4. Query Processing
 The query entrypoint is:
 
 ```bash
@@ -61,6 +84,7 @@ python scripts/run_query.py
   * Produces final output `.ivecs` file.
 
 * **Two-stage mode** (`p != 1.0` and `p != 2.0`):
+  * Uses the `2.0` index when `p > 1.4`, and the `1.0` index when `p <= 1.4`.
   * Stage 1 (Candidate Generation): run `hnsw_query` to generate `t` candidates.
   * Stage 2 (Candidate Verification): run `candidate_verify` to refine candidates to final top-`K`.
 
@@ -82,13 +106,6 @@ Output naming convention:
 ```bash
 ./candidate_verify [data_file] [query_file] [candidate_file] [p_value] [K] [batch_size] [tau] [output_file]
 ```
-
-## Datasets
-
-Some of the datasets used in the paper can be found here:
-[Test Datasets in Zenodo](https://zenodo.org/records/18626438?token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjBiMjhmYTU0LWI2MzktNDJiOC04OThiLWIzNmNjN2ExYzcxYyIsImRhdGEiOnt9LCJyYW5kb20iOiI2ZmQxMmU4ZDYyMTBlNGI3OTM4NTM4NWU5OGVjMTIzOCJ9.4fEdjRrNccXuXL-tyB7kTnyRxDqr9TDsyhO-WouD4MMt8Oc2nhQrnDnk6FuQ15yGJBQgTi7pH3N5SQ6KCSZqzQ)
-
-
 
 ## References
 

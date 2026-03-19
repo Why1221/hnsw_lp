@@ -1,8 +1,8 @@
 import json
-import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 
 # -----------------------------
@@ -18,13 +18,17 @@ t = 300  # used only when p is neither 1.0 nor 2.0
 tau = 0.92
 
 # Paths
-exp_path_org = "/media/gtnetuser/T7/Huayi/lp_graph/Experiments"
-hnsw_query_path = "/media/gtnetuser/T7/Huayi/lp_graph/hnsw_lp/hnsw_query"
-candidate_verify_path = "/media/gtnetuser/T7/Huayi/lp_graph/hnsw_lp/candidate_verify"
+exp_path_org = None
 
 # Fallback config defaults (used only if config json is missing/broken)
 default_M = 32
 default_Ef = 200
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+DEFAULT_EXP_DIR = REPO_DIR.parent / "Experiments"
+hnsw_query_path = REPO_DIR / "hnsw_query"
+candidate_verify_path = REPO_DIR / "candidate_verify"
 
 
 def format_p(value: float) -> str:
@@ -46,7 +50,7 @@ def parse_time_ms(output: str, pattern: str, stage_name: str) -> float:
 
 
 def run_command_show_output(cmd, name: str) -> str:
-    print(f"Running {name}: {' '.join(cmd)}")
+    print(f"Running {name}: {' '.join(str(part) for part in cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.stdout:
         print(result.stdout, end="")
@@ -57,17 +61,17 @@ def run_command_show_output(cmd, name: str) -> str:
     return result.stdout
 
 
-def load_config_or_default(config_path: str, default_config: dict) -> dict:
+def load_config_or_default(config_path: Path, default_config: dict) -> dict:
     try:
-        with open(config_path, "r", encoding="utf-8") as fin:
+        with config_path.open("r", encoding="utf-8") as fin:
             return json.load(fin)
     except (FileNotFoundError, json.JSONDecodeError):
         return default_config.copy()
 
 
-def read_fvecs_shape(path: str) -> tuple[int, int]:
-    file_size = os.path.getsize(path)
-    with open(path, "rb") as fin:
+def read_fvecs_shape(path: Path) -> tuple[int, int]:
+    file_size = path.stat().st_size
+    with path.open("rb") as fin:
         dim_bytes = fin.read(4)
         if len(dim_bytes) != 4:
             raise RuntimeError(f"Failed to read dimension from fvecs file: {path}")
@@ -81,6 +85,10 @@ def read_fvecs_shape(path: str) -> tuple[int, int]:
     return int(num), int(dim)
 
 
+def get_experiments_dir() -> Path:
+    return Path(exp_path_org).expanduser().resolve() if exp_path_org else DEFAULT_EXP_DIR
+
+
 def main():
     if p <= 0:
         raise ValueError("p must be > 0.")
@@ -89,7 +97,7 @@ def main():
     if efs <= 0:
         raise ValueError("efs must be > 0.")
 
-    if not os.path.exists(hnsw_query_path):
+    if not hnsw_query_path.exists():
         raise FileNotFoundError(f"hnsw_query not found: {hnsw_query_path}")
 
     direct_mode = is_close(p, 1.0) or is_close(p, 2.0)
@@ -99,22 +107,23 @@ def main():
             raise ValueError("For two-stage mode, t must be > 10.")
         if t <= 4 * K:
             raise ValueError("For two-stage mode, t must be > 4K.")
-        if not os.path.exists(candidate_verify_path):
+        if not candidate_verify_path.exists():
             raise FileNotFoundError(f"candidate_verify not found: {candidate_verify_path}")
 
-    dataset_dir = os.path.join(exp_path_org, dataset)
-    config_dir = os.path.join(dataset_dir, "config")
-    os.makedirs(config_dir, exist_ok=True)
+    exp_path = get_experiments_dir()
+    dataset_dir = exp_path / dataset
+    config_dir = dataset_dir / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
 
-    data_file = os.path.join(dataset_dir, f"{dataset}-train.fvecs")
-    query_file = os.path.join(dataset_dir, f"{dataset}-test.fvecs")
-    if not os.path.exists(data_file):
+    data_file = dataset_dir / f"{dataset}-train.fvecs"
+    query_file = dataset_dir / f"{dataset}-test.fvecs"
+    if not data_file.exists():
         raise FileNotFoundError(f"Base data file not found: {data_file}")
-    if not os.path.exists(query_file):
+    if not query_file.exists():
         raise FileNotFoundError(f"Query file not found: {query_file}")
 
     p_str = format_p(p)
-    final_output_file = os.path.join(dataset_dir, f"{dataset}_{p_str}_{K}.ivecs")
+    final_output_file = dataset_dir / f"{dataset}_{p_str}_{K}.ivecs"
 
     if direct_mode:
         stage1_p = p
@@ -123,10 +132,10 @@ def main():
     else:
         stage1_p = 2.0 if p > 1.4 else 1.0
         stage1_k = t
-        stage1_output_file = os.path.join(dataset_dir, f"{dataset}_{p_str}_t{t}.ivecs")
+        stage1_output_file = dataset_dir / f"{dataset}_{p_str}_t{t}.ivecs"
 
     stage1_p_str = format_p(stage1_p)
-    base_config_path = os.path.join(config_dir, f"{dataset}_{stage1_p_str}.json")
+    base_config_path = config_dir / f"{dataset}_{stage1_p_str}.json"
 
     default_config = {
         "M": default_M,
@@ -134,11 +143,11 @@ def main():
         "p": stage1_p,
         "n": 0,
         "d": 0,
-        "ds": data_file,
-        "if": os.path.join(dataset_dir, f"{dataset}_{stage1_p_str}.index"),
+        "ds": str(data_file),
+        "if": str(dataset_dir / f"{dataset}_{stage1_p_str}.index"),
         "nq": 0,
-        "qf": query_file,
-        "rf": stage1_output_file,
+        "qf": str(query_file),
+        "rf": str(stage1_output_file),
         "K": stage1_k,
         "efS": efs,
     }
@@ -148,10 +157,10 @@ def main():
     nq, dim = read_fvecs_shape(query_file)
     conf["nq"] = nq
     conf["d"] = dim
-    conf["ds"] = data_file
-    conf["if"] = os.path.join(dataset_dir, f"{dataset}_{stage1_p_str}.index")
-    conf["qf"] = query_file
-    conf["rf"] = stage1_output_file
+    conf["ds"] = str(data_file)
+    conf["if"] = str(dataset_dir / f"{dataset}_{stage1_p_str}.index")
+    conf["qf"] = str(query_file)
+    conf["rf"] = str(stage1_output_file)
     conf["K"] = int(stage1_k)
     conf["efS"] = int(efs)
     conf["p"] = float(stage1_p)
@@ -162,33 +171,37 @@ def main():
         query_config_name = f"query_{dataset}_{p_str}_{K}.json"
     else:
         query_config_name = f"query_{dataset}_{p_str}_{K}_t{t}.json"
-    query_config_path = os.path.join(config_dir, query_config_name)
+    query_config_path = config_dir / query_config_name
 
-    with open(query_config_path, "w", encoding="utf-8") as fout:
+    index_file = dataset_dir / f"{dataset}_{stage1_p_str}.index"
+    if not index_file.exists():
+        raise FileNotFoundError(f"Index file not found: {index_file}")
+
+    with query_config_path.open("w", encoding="utf-8") as fout:
         json.dump(conf, fout, indent=4)
 
-    stage1_stdout = run_command_show_output([hnsw_query_path, query_config_path], "hnsw_query")
+    stage1_stdout = run_command_show_output([str(hnsw_query_path), str(query_config_path)], "hnsw_query")
     stage1_time_ms = parse_time_ms(stage1_stdout, r"Total time:\s*([0-9eE+\-.]+)\s*ms", "stage1")
 
     stage2_time_ms = 0.0
     if not direct_mode:
         verify_cmd = [
-            candidate_verify_path,
-            data_file,
-            query_file,
-            stage1_output_file,
+            str(candidate_verify_path),
+            str(data_file),
+            str(query_file),
+            str(stage1_output_file),
             str(p),
             str(K),
             str(K),
             str(tau),
-            final_output_file,
+            str(final_output_file),
         ]
         stage2_stdout = run_command_show_output(verify_cmd, "candidate_verify")
         stage2_time_ms = parse_time_ms(
             stage2_stdout, r"Total Verification Time:\s*([0-9eE+\-.]+)\s*ms", "stage2"
         )
 
-    if not os.path.exists(final_output_file):
+    if not final_output_file.exists():
         raise RuntimeError(f"Final output file was not generated: {final_output_file}")
 
     total_pipeline_time_ms = stage1_time_ms + stage2_time_ms

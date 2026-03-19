@@ -1,16 +1,18 @@
-import subprocess
-import pathlib
-import os, sys
 import json
-import numpy as np
+import subprocess
+from pathlib import Path
 
 # Indexing for HNSW
 datasets = ["glove"] #,gist","glove","deep","sift","sun","mnist"
 p_lst = [1.0]  #[]
-exp_path_org = "/media/gtnetuser/T7/Huayi/lp_graph/Experiments"
-program_path = "/media/gtnetuser/T7/Huayi/lp_graph/hnsw_lp/hnsw_index"
+exp_path_org = None
 M = 32
 efc = 200
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+DEFAULT_EXP_DIR = REPO_DIR.parent / "Experiments"
+program_path = REPO_DIR / "hnsw_index"
 
 # Default configuration
 default_config = {
@@ -26,9 +28,14 @@ default_config = {
     "rf": ""   # will be updated per dataset
 }
 
-def read_fvecs_shape(path: str) -> tuple[int, int]:
-    file_size = os.path.getsize(path)
-    with open(path, "rb") as fin:
+
+def get_experiments_dir() -> Path:
+    return Path(exp_path_org).expanduser().resolve() if exp_path_org else DEFAULT_EXP_DIR
+
+
+def read_fvecs_shape(path: Path) -> tuple[int, int]:
+    file_size = path.stat().st_size
+    with path.open("rb") as fin:
         dim_bytes = fin.read(4)
         if len(dim_bytes) != 4:
             raise RuntimeError(f"Failed to read dimension from fvecs file: {path}")
@@ -41,43 +48,57 @@ def read_fvecs_shape(path: str) -> tuple[int, int]:
     num = file_size // record_size
     return int(num), int(dim)
 
+
+exp_path = get_experiments_dir()
+if not program_path.exists():
+    raise FileNotFoundError(f"hnsw_index not found: {program_path}")
+
 for i in range(len(datasets)):
     for j in range(len(p_lst)):
         dataset = datasets[i]
         p = p_lst[j]
+        dataset_dir = exp_path / dataset
+        config_dir = dataset_dir / "config"
+        train_file = dataset_dir / f"{dataset}-train.fvecs"
+        query_file = dataset_dir / f"{dataset}-test.fvecs"
+
+        if not train_file.exists():
+            raise FileNotFoundError(f"Base data file not found: {train_file}")
+        if not query_file.exists():
+            raise FileNotFoundError(f"Query file not found: {query_file}")
         
         # Try to read existing config, if fails use default
-        ann_json_path = os.path.join(exp_path_org, "ann.json")
+        ann_json_path = exp_path / "ann.json"
         try:
-            with open(ann_json_path) as fin:
+            with ann_json_path.open("r", encoding="utf-8") as fin:
                 conf = json.load(fin)
         except (FileNotFoundError, json.JSONDecodeError):
             conf = default_config.copy()
             # Create ann.json if it doesn't exist
-            os.makedirs(os.path.dirname(ann_json_path), exist_ok=True)
-            with open(ann_json_path, 'w') as fout:
+            ann_json_path.parent.mkdir(parents=True, exist_ok=True)
+            with ann_json_path.open("w", encoding="utf-8") as fout:
                 json.dump(default_config, fout, indent=4)
         
         # Update configuration with dataset-specific values
-        n,d =read_fvecs_shape(exp_path_org + "/{}/{}-train.fvecs".format(dataset,dataset))
+        n, d = read_fvecs_shape(train_file)
         conf["n"] = n
         conf["d"] = d
-        conf["ds"] = exp_path_org + "/{}/{}-train.fvecs".format(dataset,dataset)
-        conf["if"] = exp_path_org + "/{}/{}_{}.index".format(dataset, dataset, p)
+        conf["ds"] = str(train_file)
+        conf["if"] = str(dataset_dir / f"{dataset}_{p}.index")
         conf["p"] = p
         conf["M"] = M
         conf["Ef"] = efc
         conf["nq"] = 1000
-        conf["qf"] = exp_path_org + "/{}/{}-test.fvecs".format(dataset,dataset)
-        conf["rf"] = exp_path_org + "/{}/{}_{}_hnsw.res".format(dataset, dataset, p)
+        conf["qf"] = str(query_file)
+        conf["rf"] = str(dataset_dir / f"{dataset}_{p}_hnsw.res")
         conf["K"] = 100
         conf["efS"] = 1000
 
         # Create and save dataset-specific config
-        config_file = os.path.join(exp_path_org, "{}/config/{}_{}.json".format(dataset,dataset,p))
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        with open(config_file, "w") as fout:
+        config_file = config_dir / f"{dataset}_{p}.json"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        with config_file.open("w", encoding="utf-8") as fout:
             json.dump(conf, fout, indent=4)
         
         print(f"Created config file: {config_file}")
-        subprocess.run([program_path, config_file])
+        subprocess.run([str(program_path), str(config_file)], check=True)
