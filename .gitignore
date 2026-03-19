@@ -11,3 +11,12 @@ var/
 .vs/
 **.DS_Store
 *.pyc
+
+*.o
+*.out
+__pycache__/
+hnsw_index
+hnsw_query
+candidate_verify
+dist_comp_time
+Experiments/
